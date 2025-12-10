@@ -329,15 +329,9 @@ export const PdfReplacer: React.FC<PdfReplacerProps> = ({ sharedPdf }) => {
   // 自動載入共享的 PDF（當 sharedPdf 存在且尚未載入時）
   useEffect(() => {
     if (sharedPdf && !pdfData) {
-      setPdfData(sharedPdf.data);
-      setPdfInfo({
-        fileName: sharedPdf.fileName,
-        pageCount: sharedPdf.pageCount,
-      });
-      setReplaceRules([]);
+      handleUseSharedPdf();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sharedPdf]);
+  }, [sharedPdf, pdfData, handleUseSharedPdf]);
 
   return (
     <div className="space-y-6 p-4 sm:p-6">

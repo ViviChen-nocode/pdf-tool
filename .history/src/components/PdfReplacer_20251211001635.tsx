@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import * as pdfjs from 'pdfjs-dist';
 import { PDFDocument, rgb } from 'pdf-lib';
 import { saveAs } from 'file-saver';
@@ -314,30 +314,16 @@ export const PdfReplacer: React.FC<PdfReplacerProps> = ({ sharedPdf }) => {
     setReplaceRules([]);
     setStatus('');
   }, []);
-
-  // 使用共享的 PDF（從第一步傳來的）
-  const handleUseSharedPdf = useCallback(() => {
-    if (!sharedPdf) return;
-    setPdfData(sharedPdf.data);
-    setPdfInfo({
-      fileName: sharedPdf.fileName,
-      pageCount: sharedPdf.pageCount,
-    });
-    setReplaceRules([]);
-  }, [sharedPdf]);
-
-  // 自動載入共享的 PDF（當 sharedPdf 存在且尚未載入時）
-  useEffect(() => {
-    if (sharedPdf && !pdfData) {
+    // 使用共享的 PDF（從第一步傳來的）
+    const handleUseSharedPdf = useCallback(() => {
+      if (!sharedPdf) return;
       setPdfData(sharedPdf.data);
       setPdfInfo({
         fileName: sharedPdf.fileName,
         pageCount: sharedPdf.pageCount,
       });
       setReplaceRules([]);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sharedPdf]);
+    }, [sharedPdf]);
 
   return (
     <div className="space-y-6 p-4 sm:p-6">
@@ -381,21 +367,11 @@ export const PdfReplacer: React.FC<PdfReplacerProps> = ({ sharedPdf }) => {
           />
         </div>
         ) : (
-          <div className="space-y-3">
-            <FileInfo
-              fileName={pdfInfo.fileName}
-              pageCount={pdfInfo.pageCount}
-              onRemove={handleReset}
-            />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleReset}
-              className="w-full"
-            >
-              重新上傳其他 PDF
-            </Button>
-          </div>
+          <FileInfo
+            fileName={pdfInfo.fileName}
+            pageCount={pdfInfo.pageCount}
+            onRemove={handleReset}
+          />
         )}
       </div>
 

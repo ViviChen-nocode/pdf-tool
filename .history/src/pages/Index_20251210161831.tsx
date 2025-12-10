@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PdfConverter } from "@/components/PdfConverter";
 import { PdfReplacer } from "@/components/PdfReplacer";
@@ -7,31 +7,13 @@ import { MascotCharacter } from "@/components/MascotCharacter";
 import { FileImage, Replace, Sparkles, ShieldCheck, Palette, ChevronRight } from "lucide-react";
 
 const steps = [
-  { value: "convert", label: "拆頁面", icon: FileImage },
-  { value: "edit", label: "改內容", icon: Palette },
-  { value: "replace", label: "組回去", icon: Replace },
+  { value: "convert", label: "PDF 轉 PNG", icon: FileImage },
+  { value: "edit", label: "外部編輯", icon: Palette },
+  { value: "replace", label: "頁面替換", icon: Replace },
 ];
-
-// 共享的 PDF 資料類型
-export interface SharedPdfData {
-  data: ArrayBuffer;
-  fileName: string;
-  pageCount: number;
-}
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("convert");
-  const [sharedPdf, setSharedPdf] = useState<SharedPdfData | null>(null);
-  
-  const handlePdfUploaded = useCallback((pdfData: SharedPdfData) => {
-    setSharedPdf(pdfData);
-  }, []);
-  
-  const handleTabChange = (value: string) => {
-    setActiveTab(value);
-    // 滾動到頂部
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
   
   return (
     <div className="min-h-screen py-8 px-4 flex flex-col overflow-x-hidden">
@@ -61,7 +43,7 @@ const Index = () => {
 
         {/* Main Card */}
         <div className="glass-card overflow-hidden transition-shadow duration-300">
-        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             {/* Step Indicator Tabs */}
             <TabsList className="w-full h-auto p-0 bg-transparent rounded-b-none border-b border-border/50">
               <div className="w-full flex items-center">
@@ -75,7 +57,7 @@ const Index = () => {
                       <span className="flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-primary/10 text-primary text-xs font-bold shrink-0">
                         {index + 1}
                       </span>
-                      {step.icon && <step.icon className="w-4 h-4 shrink-0 hidden sm:block" />}
+                      <step.icon className="w-4 h-4 shrink-0 hidden sm:block" />
                       <span className="text-xs sm:text-sm font-medium truncate">{step.label}</span>
                     </TabsTrigger>
                     {/* Arrow Separator */}
@@ -88,16 +70,13 @@ const Index = () => {
             </TabsList>
 
             <TabsContent value="convert">
-              <PdfConverter 
-                onNextStep={() => handleTabChange("edit")} 
-                onPdfUploaded={handlePdfUploaded}
-              />
+              <PdfConverter onNextStep={() => setActiveTab("edit")} />
             </TabsContent>
             <TabsContent value="edit">
-              <ExternalEditGuide onNextStep={() => handleTabChange("replace")} />
+              <ExternalEditGuide onNextStep={() => setActiveTab("replace")} />
             </TabsContent>
             <TabsContent value="replace">
-              <PdfReplacer sharedPdf={sharedPdf} />
+              <PdfReplacer />
             </TabsContent>
           </Tabs>
         </div>

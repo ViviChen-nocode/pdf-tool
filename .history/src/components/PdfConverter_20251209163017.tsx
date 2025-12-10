@@ -9,7 +9,7 @@ import { Button } from './ui/button';
 import { Label } from './ui/label';
 import { Input } from './ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Sparkles, ArrowRight } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 
 // 設定 PDF.js Worker
 pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -18,21 +18,9 @@ interface PDFState {
   pdf: pdfjs.PDFDocumentProxy | null;
   fileName: string;
   pageCount: number;
-  arrayBuffer?: ArrayBuffer;
 }
 
-interface SharedPdfData {
-  data: ArrayBuffer;
-  fileName: string;
-  pageCount: number;
-}
-
-interface PdfConverterProps {
-  onNextStep?: () => void;
-  onPdfUploaded?: (pdfData: SharedPdfData) => void;
-}
-
-export const PdfConverter: React.FC<PdfConverterProps> = ({ onNextStep, onPdfUploaded }) => {
+export const PdfConverter: React.FC = () => {
   const [pdfState, setPdfState] = useState<PDFState>({ pdf: null, fileName: '', pageCount: 0 });
   const [scale, setScale] = useState('3');
   const [pageRange, setPageRange] = useState('');
@@ -49,18 +37,10 @@ export const PdfConverter: React.FC<PdfConverterProps> = ({ onNextStep, onPdfUpl
 
     try {
       const arrayBuffer = await file.arrayBuffer();
-      const pdf = await pdfjs.getDocument(arrayBuffer.slice(0)).promise;
+      const pdf = await pdfjs.getDocument(arrayBuffer).promise;
       
       setPdfState({
         pdf,
-        fileName: file.name,
-        pageCount: pdf.numPages,
-        arrayBuffer,
-      });
-
-      // 通知父組件 PDF 已上傳
-      onPdfUploaded?.({
-        data: arrayBuffer,
         fileName: file.name,
         pageCount: pdf.numPages,
       });
@@ -68,7 +48,7 @@ export const PdfConverter: React.FC<PdfConverterProps> = ({ onNextStep, onPdfUpl
       console.error(error);
       alert('無法讀取此 PDF，檔案可能損毀。');
     }
-  }, [onPdfUploaded]);
+  }, []);
 
   const parsePageRange = useCallback((input: string, maxPage: number): number[] => {
     const pages = new Set<number>();
@@ -167,13 +147,13 @@ export const PdfConverter: React.FC<PdfConverterProps> = ({ onNextStep, onPdfUpl
   }, []);
 
   return (
-    <div className="space-y-6 p-4 sm:p-6">
+    <div className="space-y-6 p-6">
       <UploadZone
         onFileSelect={handleFileSelect}
         accept="application/pdf"
         icon="pdf"
-        title="點擊或拖曳上傳原始 NotebookLM 簡報 PDF 檔案"
-        subtitle="將簡報 PDF 檔案分拆為 PNG 圖檔以利重新編輯"
+        title="點擊或拖曳上傳 PDF 檔案"
+        subtitle="支援任意大小的 PDF 文件"
       />
 
       {pdfState.pdf && (
@@ -226,21 +206,6 @@ export const PdfConverter: React.FC<PdfConverterProps> = ({ onNextStep, onPdfUpl
               <Sparkles className="w-5 h-5" />
               {isProcessing ? '處理中...' : '開始轉換並下載 ZIP'}
             </Button>
-
-            {/* Next Step Button */}
-            {status === '完成！下載已開始。' && onNextStep && (
-              <Button
-                onClick={onNextStep}
-                variant="outline"
-                size="lg"
-                className="w-full gap-2 border-primary/50 text-primary hover:bg-primary/10"
-              >
-                <span className="flex flex-col items-center leading-tight">
-                  <span>第二步：外部編輯</span>
-                </span>
-                <ArrowRight className="w-5 h-5" />
-              </Button>
-            )}
           </div>
 
           {(isProcessing || progress > 0) && (

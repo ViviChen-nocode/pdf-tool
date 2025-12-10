@@ -1,8 +1,7 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import * as pdfjs from 'pdfjs-dist';
 import { PDFDocument, rgb } from 'pdf-lib';
 import { saveAs } from 'file-saver';
-import confetti from 'canvas-confetti';
 import { UploadZone } from './UploadZone';
 import { FileInfo } from './FileInfo';
 import { ProgressBar } from './ProgressBar';
@@ -10,7 +9,7 @@ import { ReplaceRuleItem } from './ReplaceRuleItem';
 import { Button } from './ui/button';
 import { Label } from './ui/label';
 import { Input } from './ui/input';
-import { ImagePlus, Replace, AlertCircle, CheckCircle, X, Image as ImageIcon } from 'lucide-react';
+import { ImagePlus, Replace, AlertCircle, CheckCircle } from 'lucide-react';
 
 // 設定 PDF.js Worker
 pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -19,8 +18,6 @@ interface ReplaceRule {
   pageNum: number;
   imageData: ArrayBuffer;
   fileName: string;
-  newImagePreview: string;      // 新圖片預覽 URL
-  originalPagePreview: string;  // 原始頁面預覽 URL
 }
 
 interface ImageCheckResult {
@@ -28,22 +25,12 @@ interface ImageCheckResult {
   message: string;
 }
 
-interface SharedPdfData {
-  data: ArrayBuffer;
-  fileName: string;
-  pageCount: number;
-}
-
-interface PdfReplacerProps {
-  sharedPdf?: SharedPdfData | null;
-}
-
-export const PdfReplacer: React.FC<PdfReplacerProps> = ({ sharedPdf }) => {
+export const PdfReplacer: React.FC = () => {
   const [pdfData, setPdfData] = useState<ArrayBuffer | null>(null);
   const [pdfInfo, setPdfInfo] = useState({ fileName: '', pageCount: 0 });
   const [replaceRules, setReplaceRules] = useState<ReplaceRule[]>([]);
   const [targetPage, setTargetPage] = useState('');
-  const [tempImage, setTempImage] = useState<{ data: ArrayBuffer; name: string; previewUrl: string } | null>(null);
+  const [tempImage, setTempImage] = useState<{ data: ArrayBuffer; name: string } | null>(null);
   const [imageCheck, setImageCheck] = useState<ImageCheckResult>({ status: 'idle', message: '' });
   const [isProcessing, setIsProcessing] = useState(false);
   const [status, setStatus] = useState('');
@@ -90,7 +77,6 @@ export const PdfReplacer: React.FC<PdfReplacerProps> = ({ sharedPdf }) => {
         setTempImage({
           data: evt.target?.result as ArrayBuffer,
           name: file.name,
-          previewUrl: objectUrl, // Keep the URL for preview
         });
       };
       reader.readAsArrayBuffer(file);
@@ -106,50 +92,17 @@ export const PdfReplacer: React.FC<PdfReplacerProps> = ({ sharedPdf }) => {
         if (!isRatioPerfect) msg += `比例非 16:9，系統將自動補黑邊以維持畫面完整。`;
         setImageCheck({ status: 'warning', message: msg });
       }
+      
+      URL.revokeObjectURL(objectUrl);
     };
     img.src = objectUrl;
   }, []);
 
-  const handleClearImage = useCallback(() => {
-    if (tempImage?.previewUrl) {
-      URL.revokeObjectURL(tempImage.previewUrl);
-    }
-    setTempImage(null);
-    setImageCheck({ status: 'idle', message: '' });
-    if (imageInputRef.current) imageInputRef.current.value = '';
-  }, [tempImage]);
-
-  // 生成 PDF 頁面縮圖
-  const generatePageThumbnail = useCallback(async (pageNum: number): Promise<string> => {
-    if (!pdfData) return '';
-    
-    try {
-      const pdf = await pdfjs.getDocument(pdfData.slice(0)).promise;
-      const page = await pdf.getPage(pageNum);
-      const viewport = page.getViewport({ scale: 0.3 }); // 小縮圖
-      
-      const canvas = document.createElement('canvas');
-      const context = canvas.getContext('2d')!;
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
-      
-      await page.render({ canvasContext: context, viewport }).promise;
-      
-      const dataUrl = canvas.toDataURL('image/png');
-      page.cleanup();
-      
-      return dataUrl;
-    } catch (error) {
-      console.error('生成縮圖失敗:', error);
-      return '';
-    }
-  }, [pdfData]);
-
-  const handleAddRule = useCallback(async () => {
+  const handleAddRule = useCallback(() => {
     const pageNum = parseInt(targetPage);
     
-    if (!pageNum || pageNum < 1 || pageNum > pdfInfo.pageCount) {
-      alert(`請輸入有效的頁碼 (1-${pdfInfo.pageCount})`);
+    if (!pageNum || pageNum < 1) {
+      alert('請輸入有效的頁碼');
       return;
     }
     
@@ -158,46 +111,28 @@ export const PdfReplacer: React.FC<PdfReplacerProps> = ({ sharedPdf }) => {
       return;
     }
 
-    // 生成原始頁面縮圖
-    const originalPagePreview = await generatePageThumbnail(pageNum);
-
-    const newRule: ReplaceRule = {
-      pageNum,
-      imageData: tempImage.data,
-      fileName: tempImage.name,
-      newImagePreview: tempImage.previewUrl,
-      originalPagePreview,
-    };
-
     setReplaceRules(prev => {
       const existingIndex = prev.findIndex(r => r.pageNum === pageNum);
       if (existingIndex >= 0) {
         if (!confirm(`第 ${pageNum} 頁已有設定，要覆蓋嗎？`)) return prev;
-        // 清理舊的預覽 URL
-        const oldRule = prev[existingIndex];
-        if (oldRule.newImagePreview) URL.revokeObjectURL(oldRule.newImagePreview);
         const newRules = [...prev];
         newRules.splice(existingIndex, 1);
-        return [...newRules, newRule].sort((a, b) => a.pageNum - b.pageNum);
+        return [...newRules, { pageNum, imageData: tempImage.data, fileName: tempImage.name }]
+          .sort((a, b) => a.pageNum - b.pageNum);
       }
-      return [...prev, newRule].sort((a, b) => a.pageNum - b.pageNum);
+      return [...prev, { pageNum, imageData: tempImage.data, fileName: tempImage.name }]
+        .sort((a, b) => a.pageNum - b.pageNum);
     });
 
-    // 不要 revoke previewUrl，因為現在要保留給 ReplaceRuleItem 使用
     setTargetPage('');
     setTempImage(null);
     setImageCheck({ status: 'idle', message: '' });
     if (imageInputRef.current) imageInputRef.current.value = '';
-  }, [targetPage, tempImage, pdfInfo.pageCount, generatePageThumbnail]);
+  }, [targetPage, tempImage]);
 
   const handleRemoveRule = useCallback((index: number) => {
-    setReplaceRules(prev => {
-      const rule = prev[index];
-      if (rule?.newImagePreview) URL.revokeObjectURL(rule.newImagePreview);
-      return prev.filter((_, i) => i !== index);
-    });
+    setReplaceRules(prev => prev.filter((_, i) => i !== index));
   }, []);
-
 
   const handleExecuteReplace = useCallback(async () => {
     if (!pdfData || replaceRules.length === 0) return;
@@ -266,39 +201,6 @@ export const PdfReplacer: React.FC<PdfReplacerProps> = ({ sharedPdf }) => {
       saveAs(pdfBlob, `${originalName}_edited.pdf`);
       
       setStatus('完成！已下載。');
-      
-      // 觸發撒花動畫
-      const duration = 3000;
-      const animationEnd = Date.now() + duration;
-      const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 9999 };
-
-      function randomInRange(min: number, max: number) {
-        return Math.random() * (max - min) + min;
-      }
-
-      const interval: NodeJS.Timeout = setInterval(function() {
-        const timeLeft = animationEnd - Date.now();
-
-        if (timeLeft <= 0) {
-          return clearInterval(interval);
-        }
-
-        const particleCount = 50 * (timeLeft / duration);
-        
-        // 從左側發射
-        confetti({
-          ...defaults,
-          particleCount,
-          origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
-        });
-        
-        // 從右側發射
-        confetti({
-          ...defaults,
-          particleCount,
-          origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
-        });
-      }, 250);
     } catch (err: any) {
       console.error(err);
       alert('錯誤：' + err.message);
@@ -315,87 +217,31 @@ export const PdfReplacer: React.FC<PdfReplacerProps> = ({ sharedPdf }) => {
     setStatus('');
   }, []);
 
-  // 使用共享的 PDF（從第一步傳來的）
-  const handleUseSharedPdf = useCallback(() => {
-    if (!sharedPdf) return;
-    setPdfData(sharedPdf.data);
-    setPdfInfo({
-      fileName: sharedPdf.fileName,
-      pageCount: sharedPdf.pageCount,
-    });
-    setReplaceRules([]);
-  }, [sharedPdf]);
-
-  // 自動載入共享的 PDF（當 sharedPdf 存在且尚未載入時）
-  useEffect(() => {
-    if (sharedPdf && !pdfData) {
-      setPdfData(sharedPdf.data);
-      setPdfInfo({
-        fileName: sharedPdf.fileName,
-        pageCount: sharedPdf.pageCount,
-      });
-      setReplaceRules([]);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sharedPdf]);
-
   return (
-    <div className="space-y-6 p-4 sm:p-6">
+    <div className="space-y-6 p-6">
       {/* Step ① 上傳原始 PDF */}
       <div className="space-y-4">
         <div className="flex items-center gap-2">
-          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-secondary text-secondary-foreground text-sm font-bold">
+          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm font-bold">
             ①
           </span>
           <span className="font-semibold text-foreground">上傳原始 PDF 簡報</span>
         </div>
         
         {!pdfData ? (
-          <div className="space-y-3">
-          {/* 如果有共享 PDF，顯示使用原始檔案的選項 */}
-          {sharedPdf && (
-            <div className="p-4 rounded-xl bg-primary/5 border border-primary/20 space-y-3">
-              <div className="flex items-center gap-2 text-sm text-primary">
-                <CheckCircle className="w-4 h-4" />
-                <span>偵測到第一步已上傳的 PDF</span>
-              </div>
-              <div className="flex items-center justify-between gap-3 p-3 rounded-lg bg-background/80">
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-foreground truncate">{sharedPdf.fileName}</p>
-                  <p className="text-xs text-muted-foreground">{sharedPdf.pageCount} 頁</p>
-                </div>
-                <Button onClick={handleUseSharedPdf} size="sm" variant="secondary">
-                  使用此檔案
-                </Button>
-              </div>
-            </div>
-          )}
-          
-          {/* 上傳新檔案區域 */}
           <UploadZone
             onFileSelect={handlePdfSelect}
             accept="application/pdf"
             icon="pdf"
-            title={sharedPdf ? "或上傳其他 PDF" : "點擊或拖曳上傳 PDF"}
+            title="點擊或拖曳上傳 PDF"
             subtitle="選擇要進行頁面替換的 PDF 檔案"
           />
-        </div>
         ) : (
-          <div className="space-y-3">
-            <FileInfo
-              fileName={pdfInfo.fileName}
-              pageCount={pdfInfo.pageCount}
-              onRemove={handleReset}
-            />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleReset}
-              className="w-full"
-            >
-              重新上傳其他 PDF
-            </Button>
-          </div>
+          <FileInfo
+            fileName={pdfInfo.fileName}
+            pageCount={pdfInfo.pageCount}
+            onRemove={handleReset}
+          />
         )}
       </div>
 
@@ -411,62 +257,30 @@ export const PdfReplacer: React.FC<PdfReplacerProps> = ({ sharedPdf }) => {
             </div>
 
             <div className="p-5 rounded-xl bg-muted/30 border border-border/50 space-y-4">
-              {/* Image Preview or Upload Button */}
-              {tempImage ? (
-                <div className="flex items-center gap-4 p-3 rounded-xl bg-accent/10 border border-accent/30">
-                  <div className="w-20 h-14 rounded-lg overflow-hidden bg-black flex-shrink-0">
-                    <img 
-                      src={tempImage.previewUrl} 
-                      alt="預覽" 
-                      className="w-full h-full object-contain"
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <ImageIcon className="w-4 h-4 text-accent flex-shrink-0" />
-                      <span className="font-medium text-foreground truncate">{tempImage.name}</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-0.5">已選擇圖片</p>
-                  </div>
-                  <button
-                    onClick={handleClearImage}
-                    className="p-1.5 rounded-full hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <input
-                    ref={imageInputRef}
-                    type="file"
-                    accept="image/png, image/jpeg"
-                    onChange={handleImageSelect}
-                    className="hidden"
-                  />
-                  <Button
-                    variant="muted"
-                    onClick={() => imageInputRef.current?.click()}
-                    className="w-full"
-                  >
-                    <ImagePlus className="w-4 h-4" />
-                    選擇重新編輯後圖片
-                  </Button>
-                </>
-              )}
-
-              {/* Page Number Input */}
-              <div className="flex gap-3 items-center">
-                <span className="text-sm text-muted-foreground whitespace-nowrap">替換至第</span>
+              <div className="flex gap-3">
                 <Input
                   type="number"
                   value={targetPage}
                   onChange={(e) => setTargetPage(e.target.value)}
-                  placeholder="頁碼"
-                  className="w-20"
+                  placeholder="頁碼 (如: 3)"
+                  className="w-28"
                   min={1}
                 />
-                <span className="text-sm text-muted-foreground">頁</span>
+                <input
+                  ref={imageInputRef}
+                  type="file"
+                  accept="image/png, image/jpeg"
+                  onChange={handleImageSelect}
+                  className="hidden"
+                />
+                <Button
+                  variant="muted"
+                  onClick={() => imageInputRef.current?.click()}
+                  className="flex-1"
+                >
+                  <ImagePlus className="w-4 h-4" />
+                  選擇新圖片
+                </Button>
               </div>
 
               {imageCheck.status !== 'idle' && (
@@ -502,13 +316,11 @@ export const PdfReplacer: React.FC<PdfReplacerProps> = ({ sharedPdf }) => {
                   替換清單 ({replaceRules.length} 項)
                 </Label>
                 <div className="space-y-2">
-                {replaceRules.map((rule, index) => (
+                  {replaceRules.map((rule, index) => (
                     <ReplaceRuleItem
                       key={`${rule.pageNum}-${index}`}
                       pageNum={rule.pageNum}
                       fileName={rule.fileName}
-                      originalPreview={rule.originalPagePreview}
-                      newPreview={rule.newImagePreview}
                       onRemove={() => handleRemoveRule(index)}
                     />
                   ))}
@@ -533,7 +345,7 @@ export const PdfReplacer: React.FC<PdfReplacerProps> = ({ sharedPdf }) => {
               className="w-full"
             >
               <Replace className="w-5 h-5" />
-              {isProcessing ? '處理中...' : '下載更新後簡報 PDF 檔案'}
+              {isProcessing ? '處理中...' : '下載新 PDF'}
             </Button>
 
             {status && (

@@ -49,18 +49,10 @@ export const PdfConverter: React.FC<PdfConverterProps> = ({ onNextStep, onPdfUpl
 
     try {
       const arrayBuffer = await file.arrayBuffer();
-      const pdf = await pdfjs.getDocument(arrayBuffer.slice(0)).promise;
+      const pdf = await pdfjs.getDocument(arrayBuffer).promise;
       
       setPdfState({
         pdf,
-        fileName: file.name,
-        pageCount: pdf.numPages,
-        arrayBuffer,
-      });
-
-      // 通知父組件 PDF 已上傳
-      onPdfUploaded?.({
-        data: arrayBuffer,
         fileName: file.name,
         pageCount: pdf.numPages,
       });
@@ -68,7 +60,7 @@ export const PdfConverter: React.FC<PdfConverterProps> = ({ onNextStep, onPdfUpl
       console.error(error);
       alert('無法讀取此 PDF，檔案可能損毀。');
     }
-  }, [onPdfUploaded]);
+  }, []);
 
   const parsePageRange = useCallback((input: string, maxPage: number): number[] => {
     const pages = new Set<number>();
