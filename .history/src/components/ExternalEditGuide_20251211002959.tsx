@@ -24,7 +24,7 @@ const tools = [
     description: "專業的 AI 圖片編輯工具，支援「編輯文字」功能直接修改圖片中的文字",
     logo: lovartLogo,
     url: "https://www.lovart.ai/",
-    tips: ["上傳需要修改 PNG 圖片", "使用「編輯文字」修改文字", "下載生成的新圖片"],
+    tips: ["上傳需要修改 PNG 圖片", "使用「編輯文字」功能修改文字", "下載生成的新圖片"],
     videoId: "Kc__MyFjlQg",
   },
   {
@@ -32,7 +32,7 @@ const tools = [
     description: "使用魔術橡皮擦、背景移除等功能進行細節調整",
     logo: canvaLogo,
     url: "https://www.canva.com/",
-    tips: ["上傳需要修改 PNG 圖片", "使用「魔法抓取」調整元素", "下載生成的新圖片"],
+    tips: ["上傳需要修改 PNG 圖片", "使用魔法抓取需要的元素並調整", "下載生成的新圖片"],
     videoId: "PbUlLJWeX6w",
   },
 ];
