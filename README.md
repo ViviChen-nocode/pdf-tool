@@ -1,5 +1,7 @@
 # NotebookLM 簡報後製工具箱
 
+https://pdf-tool.vivichen.ai/
+
 ![PDF 轉圖片線上工具封面](public/pdf-tool-cover.jpg)
 
 本專案提供兩大功能，所有處理皆在瀏覽器端完成，不上傳檔案：
