@@ -115,6 +115,18 @@
   .glass-card:hover {
     box-shadow: var(--shadow-elevated);
   }
+
+  /* 跑馬燈容器：固定高度、隱藏超出文字 */
+  .marquee-container {
+    @apply w-full overflow-hidden whitespace-nowrap;
+  }
+
+  /* 跑馬燈內容：單行橫向滾動 */
+  .marquee-content {
+    display: inline-block;
+    padding-left: 100%;
+    animation: marquee 22s linear infinite;
+  }
 }
 
 @layer utilities {
@@ -194,6 +206,15 @@
 
 .animate-slide-up {
   animation: slide-up 0.4s ease-out forwards;
+}
+
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
 }
 
 .progress-bar-shine::after {

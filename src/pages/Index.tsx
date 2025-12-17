@@ -34,7 +34,19 @@ const Index = () => {
   };
   
   return (
-    <div className="min-h-screen py-8 px-4 flex flex-col overflow-x-hidden">
+    <>
+      {/* Top Announcement Banner */}
+      <a
+        href="https://5xcampus.com/courses/ai-slide-flow.html"
+        className="fixed top-0 left-0 right-0 block w-full bg-amber-50 text-amber-900 text-xs sm:text-sm border-b border-amber-200 shadow-sm z-50"
+      >
+        <div className="marquee-container py-2 px-4">
+          <span className="marquee-content underline underline-offset-2 decoration-2">
+            🔥 2025 AI 簡報工具全攻略！幫你省下 100 小時盲測時間 🚀 深度解析 Gamma、NotebookLM、Felo、Canva 最強應用 🗺️ 獨家贈送「AI 工具地圖」+「十大場景簡報框架」 ⚡️ 告別資訊焦慮，新手也能無痛產出專業簡報！
+          </span>
+        </div>
+      </a>
+      <div className="min-h-screen py-8 px-4 flex flex-col overflow-x-hidden pt-12">
       <div className="max-w-2xl mx-auto flex-1 w-full">
         {/* Header */}
         <div className="text-center mb-6 space-y-4">
@@ -116,7 +128,8 @@ const Index = () => {
 
       {/* Mascot */}
       <MascotCharacter />
-    </div>
+      </div>
+    </>
   );
 };
 
