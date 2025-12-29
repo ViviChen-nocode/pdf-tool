@@ -1,0 +1,30 @@
+{
+  "name": "NotebookLM 簡報後製工具箱",
+  "short_name": "PDF 工具箱",
+  "description": "專業的 PDF 簡報工具：高品質 PDF 轉換成圖片，智慧頁面替換功能。所有處理皆在本機完成，安全無憂。",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f7fa",
+  "theme_color": "#3b82f6",
+  "icons": [
+    {
+      "src": "/icon-android-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-apple-180x180.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
+
